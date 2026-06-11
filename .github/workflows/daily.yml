@@ -19,6 +19,7 @@ jobs:
       RESUME_PDF_BASE64: ${{ secrets.RESUME_PDF_BASE64 }}
       RESUME_PDF_BASE64_GENERAL: ${{ secrets.RESUME_PDF_BASE64_GENERAL }}
       RESUME_PDF_BASE64_RETAIL: ${{ secrets.RESUME_PDF_BASE64_RETAIL }}
+      RESUME_GPG_PASSPHRASE: ${{ secrets.RESUME_GPG_PASSPHRASE }}
 
     steps:
       - name: Check out repository
@@ -66,9 +67,19 @@ jobs:
             printf "%s" "$RESUME_PDF_BASE64_GENERAL" | base64 --decode > resume/Yuanting_Shi_CV.pdf
           elif [ -n "$RESUME_PDF_BASE64" ]; then
             printf "%s" "$RESUME_PDF_BASE64" | base64 --decode > resume/Yuanting_Shi_CV.pdf
+          elif [ -f resume/Yuanting_Shi_CV.pdf.gpg ] && [ -n "$RESUME_GPG_PASSPHRASE" ]; then
+            gpg --quiet --batch --yes --pinentry-mode loopback \
+              --passphrase "$RESUME_GPG_PASSPHRASE" \
+              --output resume/Yuanting_Shi_CV.pdf \
+              --decrypt resume/Yuanting_Shi_CV.pdf.gpg
           fi
           if [ -n "$RESUME_PDF_BASE64_RETAIL" ]; then
             printf "%s" "$RESUME_PDF_BASE64_RETAIL" | base64 --decode > resume/Yuanting_Shi_CV_Retail.pdf
+          elif [ -f resume/Yuanting_Shi_CV_Retail.pdf.gpg ] && [ -n "$RESUME_GPG_PASSPHRASE" ]; then
+            gpg --quiet --batch --yes --pinentry-mode loopback \
+              --passphrase "$RESUME_GPG_PASSPHRASE" \
+              --output resume/Yuanting_Shi_CV_Retail.pdf \
+              --decrypt resume/Yuanting_Shi_CV_Retail.pdf.gpg
           fi
 
       - name: Run CareerPilot AI

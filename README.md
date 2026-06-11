@@ -156,7 +156,28 @@ Add these repository secrets in GitHub:
 - `EMAIL_ADDRESS`
 - `EMAIL_APP_PASSWORD`
 
-Because resume PDFs should not be committed, add these optional secrets for scheduled runs:
+Because resume PDFs should not be committed, do not store large PDF files directly as GitHub secrets. GitHub Actions secrets have a small size limit, so the recommended approach is to commit encrypted resume files and store only the passphrase as a secret.
+
+Encrypt the two PDFs locally:
+
+```bash
+gpg --symmetric --cipher-algo AES256 --output resume/Yuanting_Shi_CV.pdf.gpg resume/Yuanting_Shi_CV.pdf
+gpg --symmetric --cipher-algo AES256 --output resume/Yuanting_Shi_CV_Retail.pdf.gpg resume/Yuanting_Shi_CV_Retail.pdf
+```
+
+Commit the `.gpg` files, not the PDFs:
+
+```bash
+git add resume/*.pdf.gpg
+```
+
+Then add this repository secret:
+
+- `RESUME_GPG_PASSPHRASE`
+
+The workflow will decrypt the `.gpg` files before running.
+
+As a fallback for very small files, the workflow also supports these base64 secrets:
 
 - `RESUME_PDF_BASE64_GENERAL`
 - `RESUME_PDF_BASE64_RETAIL`

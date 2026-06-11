@@ -49,6 +49,7 @@ job_preferences:
     - "10+ years experience"
   blacklist_companies: []
   whitelist_companies: []
+  job_age_window: "24h"  # Options: "24h" or "7d"
   max_job_age_days: 7
 
 ranking:

@@ -85,7 +85,7 @@ def build_apify_input(config: dict[str, Any]) -> dict[str, Any]:
         "maxResults": max_jobs,
         "maxJobs": max_jobs,
         "resultsLimit": max_jobs,
-        "publishedWithinDays": preferences.get("max_job_age_days", 7),
+        "publishedWithinDays": published_within_days(preferences),
     }
 
     if isinstance(actor_input, dict):
@@ -134,7 +134,7 @@ def build_linkedin_search_url(role: str, location: str, preferences: dict[str, A
         "location": location,
     }
 
-    date_filter = linkedin_date_filter(preferences.get("max_job_age_days"))
+    date_filter = linkedin_date_filter(preferences)
     if date_filter:
         params["f_TPR"] = date_filter
 
@@ -156,7 +156,14 @@ def build_linkedin_search_url(role: str, location: str, preferences: dict[str, A
     return "https://www.linkedin.com/jobs/search/?" + urlencode(params)
 
 
-def linkedin_date_filter(max_job_age_days: Any) -> str:
+def linkedin_date_filter(preferences: dict[str, Any]) -> str:
+    job_age_window = clean_text(preferences.get("job_age_window")).lower()
+    if job_age_window == "24h":
+        return "r86400"
+    if job_age_window == "7d":
+        return "r604800"
+
+    max_job_age_days = preferences.get("max_job_age_days")
     try:
         days = int(max_job_age_days)
     except (TypeError, ValueError):
@@ -168,6 +175,15 @@ def linkedin_date_filter(max_job_age_days: Any) -> str:
     if days <= 30:
         return "r2592000"
     return ""
+
+
+def published_within_days(preferences: dict[str, Any]) -> int:
+    job_age_window = clean_text(preferences.get("job_age_window")).lower()
+    if job_age_window == "24h":
+        return 1
+    if job_age_window == "7d":
+        return 7
+    return int(preferences.get("max_job_age_days", 7))
 
 
 def linkedin_job_type_filter(work_types: list[str]) -> str:

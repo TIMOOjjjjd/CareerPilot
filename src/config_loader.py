@@ -106,6 +106,10 @@ def _validate_config(config: dict[str, Any]) -> None:
         if not isinstance(preferences.get(key), list) or not preferences[key]:
             raise ConfigError(f"job_preferences.{key} must be a non-empty list")
 
+    job_age_window = preferences.get("job_age_window")
+    if job_age_window is not None and job_age_window not in {"24h", "7d"}:
+        raise ConfigError('job_preferences.job_age_window must be either "24h" or "7d"')
+
     if not config.get("resume", {}).get("path"):
         if not config.get("candidates"):
             raise ConfigError("resume.path is required")

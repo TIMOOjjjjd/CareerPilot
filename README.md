@@ -120,6 +120,7 @@ Open `config/config.yaml` and update:
 - each candidate's `profile.email`
 - each candidate's `resume.path`
 - target roles and locations
+- `job_preferences.job_age_window`, either `24h` or `7d`
 - salary threshold
 - visa sponsorship preference
 - excluded keywords

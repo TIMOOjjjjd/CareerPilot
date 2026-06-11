@@ -1,0 +1,69 @@
+profile:
+  name: "Yuanting Shi"
+  email: "shiyuanting2022@gmail.com"
+
+resume:
+  path: "resume/Yuanting_Shi_CV.pdf"
+
+job_preferences:
+  roles: []
+#    - "Software Engineer"
+#    - "Backend Engineer"
+#    - "Data Scientist"
+  locations:
+    - "London"
+    - "Birmingham"
+    - "Remote"
+  work_type:
+    - "Full-time"
+    - "Part-time"
+  seniority:
+    - "Graduate"
+    - "Entry Level"
+  visa_sponsorship:
+    required: true
+  hybrid_remote:
+    - "Remote"
+    - "Hybrid"
+  salary:
+    min_gbp: 30000
+  excluded_keywords:
+    - "Senior"
+    - "Principal"
+    - "Director"
+    - "Head of"
+    - "VP"
+    - "Vice President"
+    - "Manager"
+    - "Lead"
+    - "Architect"
+    - "5+ years experience"
+    - "7+ years experience"
+    - "10+ years experience"
+  blacklist_companies: []
+  whitelist_companies: []
+  max_job_age_days: 7
+
+ranking:
+  top_k_email: 15
+  min_score: 60
+  scoring_weights:
+    skills: 0.4
+    experience: 0.25
+    location: 0.1
+    sponsorship: 0.15
+    salary: 0.1
+
+sources:
+  apify_actor_id: "curious_coder/linkedin-jobs-scraper"
+  max_jobs_per_run: 100
+  scrapeCompany: false
+#  apify_input:
+#    urls:
+#      - "https://www.linkedin.com/jobs/search?keywords=&location=%E8%8B%B1%E5%9B%BD&geoId=101165590&f_TPR=r86400&f_JT=F%2CP&f_E=1%2C2%2C3&position=1&pageNum=0"
+
+
+notifications:
+  email_enabled: true
+  email_subject: "Daily AI Job Matches"
+  timezone: "Europe/London"

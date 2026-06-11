@@ -1,0 +1,74 @@
+name: Daily CareerPilot AI
+
+on:
+  workflow_dispatch:
+  schedule:
+    # 07:30 Europe/London during British Summer Time.
+    - cron: "30 6 * * *"
+    # 07:30 Europe/London during Greenwich Mean Time.
+    - cron: "30 7 * * *"
+
+jobs:
+  run-careerpilot:
+    runs-on: ubuntu-latest
+    env:
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      APIFY_TOKEN: ${{ secrets.APIFY_TOKEN }}
+      EMAIL_ADDRESS: ${{ secrets.EMAIL_ADDRESS }}
+      EMAIL_APP_PASSWORD: ${{ secrets.EMAIL_APP_PASSWORD }}
+      RESUME_PDF_BASE64: ${{ secrets.RESUME_PDF_BASE64 }}
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Check Europe/London schedule window
+        id: london_time
+        run: |
+          python - <<'PY' >> "$GITHUB_OUTPUT"
+          from datetime import datetime
+          from zoneinfo import ZoneInfo
+
+          now = datetime.now(ZoneInfo("Europe/London"))
+          should_run = now.hour == 7 or "${{ github.event_name }}" == "workflow_dispatch"
+          print(f"should_run={str(should_run).lower()}")
+          print(f"local_time={now.isoformat()}")
+          PY
+
+      - name: Set up Python
+        if: steps.london_time.outputs.should_run == 'true'
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Install dependencies
+        if: steps.london_time.outputs.should_run == 'true'
+        run: pip install -r requirements.txt
+
+      - name: Restore generated data cache
+        if: steps.london_time.outputs.should_run == 'true'
+        id: cache-data-restore
+        uses: actions/cache/restore@v4
+        with:
+          path: data
+          key: careerpilot-data-${{ github.ref_name }}-${{ github.run_id }}
+          restore-keys: |
+            careerpilot-data-${{ github.ref_name }}-
+
+      - name: Recreate resume from secret
+        if: steps.london_time.outputs.should_run == 'true' && env.RESUME_PDF_BASE64 != ''
+        run: |
+          mkdir -p resume
+          printf "%s" "$RESUME_PDF_BASE64" | base64 --decode > resume/resume.pdf
+
+      - name: Run CareerPilot AI
+        if: steps.london_time.outputs.should_run == 'true'
+        run: python src/main.py
+
+      - name: Save generated data cache
+        if: steps.london_time.outputs.should_run == 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: data
+          key: careerpilot-data-${{ github.ref_name }}-${{ github.run_id }}

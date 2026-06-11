@@ -1,7 +1,11 @@
 from __future__ import annotations
 
+from copy import deepcopy
 import logging
 import os
+import re
+from pathlib import Path
+from typing import Any
 
 from collect_jobs import collect_jobs
 from config_loader import (
@@ -23,7 +27,7 @@ from storage import (
     save_raw_jobs,
     save_scored_jobs,
 )
-from utils import dedupe_list, project_root, setup_logging
+from utils import clean_text, dedupe_list, project_root, setup_logging
 
 logger = logging.getLogger(__name__)
 
@@ -31,7 +35,7 @@ logger = logging.getLogger(__name__)
 def run() -> int:
     setup_logging()
     root = project_root()
-    data_dir = root / "data"
+    base_data_dir = root / "data"
     template_dir = root / "templates"
 
     config = load_config()
@@ -41,6 +45,45 @@ def run() -> int:
     openai_api_key = os.environ["OPENAI_API_KEY"]
     apify_token = os.environ["APIFY_TOKEN"]
     model = get_openai_model()
+
+    failures = 0
+    for candidate_config in build_candidate_configs(config):
+        candidate_id = candidate_config["_candidate_id"]
+        data_dir = base_data_dir / candidate_id
+        try:
+            run_candidate(
+                config=candidate_config,
+                candidate_id=candidate_id,
+                data_dir=data_dir,
+                template_dir=template_dir,
+                openai_api_key=openai_api_key,
+                apify_token=apify_token,
+                model=model,
+            )
+        except Exception:
+            failures += 1
+            logger.exception("Candidate run failed: %s", candidate_id)
+
+    if failures:
+        raise RuntimeError(f"{failures} candidate run(s) failed")
+
+    return 0
+
+
+def run_candidate(
+    config: dict[str, Any],
+    candidate_id: str,
+    data_dir: Path,
+    template_dir: Path,
+    openai_api_key: str,
+    apify_token: str,
+    model: str,
+) -> None:
+    logger.info(
+        "Running candidate %s with resume %s",
+        candidate_id,
+        config["resume"]["path"],
+    )
 
     candidate_profile = parse_resume(
         config=config,
@@ -57,7 +100,7 @@ def run() -> int:
     if not filtered_jobs:
         logger.info("No jobs left after preprocessing filters")
         save_scored_jobs(data_dir, [])
-        return 0
+        return
 
     scored_jobs = score_jobs(
         jobs=filtered_jobs,
@@ -70,7 +113,7 @@ def run() -> int:
 
     if not config["notifications"].get("email_enabled", True):
         logger.info("Email notifications are disabled")
-        return 0
+        return
 
     history = load_history(data_dir)
     unseen_jobs = filter_unseen_jobs(scored_jobs, history)
@@ -88,7 +131,48 @@ def run() -> int:
         history = mark_jobs_emailed(history, email_jobs)
         save_history(data_dir, history)
 
-    return 0
+
+def build_candidate_configs(config: dict[str, Any]) -> list[dict[str, Any]]:
+    candidates = config.get("candidates")
+    if not candidates:
+        legacy_config = deepcopy(config)
+        legacy_config["_candidate_id"] = "default"
+        return [legacy_config]
+
+    base_config = {key: value for key, value in config.items() if key != "candidates"}
+    candidate_configs: list[dict[str, Any]] = []
+    for candidate in candidates:
+        candidate_id = safe_candidate_id(candidate["id"])
+        merged = deepcopy(base_config)
+        merged["profile"] = deepcopy(candidate["profile"])
+        merged["resume"] = deepcopy(candidate["resume"])
+
+        for section in ["job_preferences", "ranking", "sources", "notifications"]:
+            if isinstance(candidate.get(section), dict):
+                merged[section] = merge_dicts(merged.get(section, {}), candidate[section])
+
+        merged["_candidate_id"] = candidate_id
+        candidate_configs.append(merged)
+
+    return candidate_configs
+
+
+def merge_dicts(base: dict[str, Any], override: dict[str, Any]) -> dict[str, Any]:
+    merged = deepcopy(base)
+    for key, value in override.items():
+        if isinstance(value, dict) and isinstance(merged.get(key), dict):
+            merged[key] = merge_dicts(merged[key], value)
+        else:
+            merged[key] = deepcopy(value)
+    return merged
+
+
+def safe_candidate_id(value: Any) -> str:
+    text = clean_text(value).lower()
+    text = re.sub(r"[^a-z0-9_.-]+", "-", text).strip("-")
+    if not text:
+        raise ConfigError("Candidate id must contain at least one letter or number")
+    return text
 
 
 def resolve_target_roles(config: dict, candidate_profile: dict) -> None:

@@ -3,8 +3,11 @@
 !.env.example
 
 resume/*.pdf
+resume/*.docx
 data/*.json
 data/*.tmp
+data/**/*.json
+data/**/*.tmp
 
 __pycache__/
 *.py[cod]

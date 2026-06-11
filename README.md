@@ -7,7 +7,7 @@ This is an MVP for personal use. It intentionally avoids a frontend, database, a
 ## Features
 
 - Loads user preferences from `config/config.yaml`
-- Parses `resume/resume.pdf` into a cached structured candidate profile
+- Parses each configured PDF resume into a cached structured candidate profile
 - Collects jobs from an Apify actor
 - Normalizes, deduplicates, and filters jobs before LLM scoring
 - Scores jobs with the OpenAI API using only the structured resume profile
@@ -21,19 +21,22 @@ This is an MVP for personal use. It intentionally avoids a frontend, database, a
 ```text
 config/config.yaml
         |
-resume/resume.pdf ----> resume_parser.py ----> data/resume_profile.json
+        v
+for each candidate
+        |
+resume/<candidate>.pdf ----> resume_parser.py ----> data/<candidate_id>/resume_profile.json
         |
         v
-collect_jobs.py ----> data/jobs_raw.json
+collect_jobs.py ----> data/<candidate_id>/jobs_raw.json
         |
         v
 preprocess_jobs.py
         |
         v
-score_jobs.py ----> data/jobs_scored.json
+score_jobs.py ----> data/<candidate_id>/jobs_scored.json
         |
         v
-storage.py ----> data/history.json
+storage.py ----> data/<candidate_id>/history.json
         |
         v
 email_sender.py ----> Gmail SMTP
@@ -87,22 +90,35 @@ EMAIL_APP_PASSWORD=your_gmail_app_password
 
 `EMAIL_APP_PASSWORD` should be a Gmail app password, not your normal Gmail password.
 
-### 5. Add your resume
+### 5. Add your resumes
 
-Place your PDF resume here:
+Place your PDF resumes under `resume/` and reference them from `config/config.yaml`:
 
-```text
-resume/resume.pdf
+```yaml
+candidates:
+  - id: "general"
+    profile:
+      name: "Yuanting Shi"
+      email: "shiyuanting2022@gmail.com"
+    resume:
+      path: "resume/Yuanting_Shi_CV.pdf"
+  - id: "retail"
+    profile:
+      name: "Yuanting Shi"
+      email: "shiyuanting2022@gmail.com"
+    resume:
+      path: "resume/Yuanting_Shi_CV_Retail.pdf"
 ```
 
-The file is ignored by Git by default.
+Resume files are ignored by Git by default.
 
 ### 6. Edit preferences
 
 Open `config/config.yaml` and update:
 
-- `profile.name`
-- `profile.email`
+- each candidate's `profile.name`
+- each candidate's `profile.email`
+- each candidate's `resume.path`
 - target roles and locations
 - salary threshold
 - visa sponsorship preference
@@ -119,12 +135,12 @@ Apify actors have different input schemas. This MVP sends common search fields s
 python src/main.py
 ```
 
-Generated files are written to `data/`:
+Generated files are written to each candidate's data folder:
 
-- `jobs_raw.json`
-- `jobs_scored.json`
-- `history.json`
-- `resume_profile.json`
+- `data/<candidate_id>/jobs_raw.json`
+- `data/<candidate_id>/jobs_scored.json`
+- `data/<candidate_id>/history.json`
+- `data/<candidate_id>/resume_profile.json`
 
 These files are ignored by Git.
 
@@ -139,29 +155,32 @@ Add these repository secrets in GitHub:
 - `EMAIL_ADDRESS`
 - `EMAIL_APP_PASSWORD`
 
-Because `resume/resume.pdf` should not be committed, add this optional secret for scheduled runs:
+Because resume PDFs should not be committed, add these optional secrets for scheduled runs:
 
-- `RESUME_PDF_BASE64`
+- `RESUME_PDF_BASE64_GENERAL`
+- `RESUME_PDF_BASE64_RETAIL`
 
-Create it from your PDF:
+The workflow also still accepts the legacy `RESUME_PDF_BASE64` secret for `resume/Yuanting_Shi_CV.pdf`.
+
+Create each value from the corresponding PDF:
 
 ```bash
-base64 -w 0 resume/resume.pdf
+base64 -w 0 resume/Yuanting_Shi_CV.pdf
 ```
 
 On macOS:
 
 ```bash
-base64 -i resume/resume.pdf
+base64 -i resume/Yuanting_Shi_CV.pdf
 ```
 
 On Windows PowerShell:
 
 ```powershell
-[Convert]::ToBase64String([IO.File]::ReadAllBytes("resume/resume.pdf"))
+[Convert]::ToBase64String([IO.File]::ReadAllBytes("resume/Yuanting_Shi_CV.pdf"))
 ```
 
-Paste the output into the `RESUME_PDF_BASE64` GitHub secret.
+Paste the output into the matching GitHub secret, then repeat for the retail PDF.
 
 The workflow includes two UTC schedules and checks the current `Europe/London` hour before running, because GitHub cron does not support daylight-saving-aware time zones directly. It also supports manual runs with `workflow_dispatch`.
 

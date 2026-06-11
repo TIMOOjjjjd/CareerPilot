@@ -1,9 +1,16 @@
-profile:
-  name: "Yuanting Shi"
-  email: "shiyuanting2022@gmail.com"
-
-resume:
-  path: "resume/Yuanting_Shi_CV.pdf"
+candidates:
+  - id: "general"
+    profile:
+      name: "Yuanting Shi"
+      email: "shiyuanting2022@gmail.com"
+    resume:
+      path: "resume/Yuanting_Shi_CV.pdf"
+  - id: "retail"
+    profile:
+      name: "Yuanting Shi"
+      email: "shiyuanting2022@gmail.com"
+    resume:
+      path: "resume/Yuanting_Shi_CV_Retail.pdf"
 
 job_preferences:
   roles: []

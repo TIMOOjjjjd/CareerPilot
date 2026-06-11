@@ -56,10 +56,21 @@ def get_openai_model() -> str:
 
 
 def _apply_env_defaults(config: dict[str, Any]) -> None:
-    profile = config.setdefault("profile", {})
     email_address = os.getenv("EMAIL_ADDRESS")
-    if is_placeholder(profile.get("email")) and not is_placeholder(email_address):
-        profile["email"] = email_address
+
+    if "profile" in config:
+        profile = config.setdefault("profile", {})
+        if is_placeholder(profile.get("email")) and not is_placeholder(email_address):
+            profile["email"] = email_address
+
+    candidates = config.get("candidates", [])
+    if isinstance(candidates, list):
+        for candidate in candidates:
+            if not isinstance(candidate, dict):
+                continue
+            profile = candidate.setdefault("profile", {})
+            if is_placeholder(profile.get("email")) and not is_placeholder(email_address):
+                profile["email"] = email_address
 
     sources = config.setdefault("sources", {})
     actor_id = sources.get("apify_actor_id") or sources.get("actor_id") or sources.get("actors_id")
@@ -70,16 +81,19 @@ def _apply_env_defaults(config: dict[str, Any]) -> None:
 
 def _validate_config(config: dict[str, Any]) -> None:
     required_sections = [
-        "profile",
-        "resume",
         "job_preferences",
         "ranking",
         "sources",
         "notifications",
     ]
+    if not config.get("candidates"):
+        required_sections.extend(["profile", "resume"])
+
     missing = [section for section in required_sections if section not in config]
     if missing:
         raise ConfigError(f"Missing config sections: {', '.join(missing)}")
+
+    _validate_candidates(config)
 
     preferences = config["job_preferences"]
     roles = preferences.get("roles", [])
@@ -93,10 +107,12 @@ def _validate_config(config: dict[str, Any]) -> None:
             raise ConfigError(f"job_preferences.{key} must be a non-empty list")
 
     if not config.get("resume", {}).get("path"):
-        raise ConfigError("resume.path is required")
+        if not config.get("candidates"):
+            raise ConfigError("resume.path is required")
 
     if not config.get("profile", {}).get("email"):
-        raise ConfigError("profile.email is required")
+        if not config.get("candidates"):
+            raise ConfigError("profile.email is required")
 
     ranking = config["ranking"]
     if int(ranking.get("top_k_email", 0)) <= 0:
@@ -105,3 +121,35 @@ def _validate_config(config: dict[str, Any]) -> None:
     min_score = int(ranking.get("min_score", -1))
     if min_score < 0 or min_score > 100:
         raise ConfigError("ranking.min_score must be between 0 and 100")
+
+
+def _validate_candidates(config: dict[str, Any]) -> None:
+    candidates = config.get("candidates")
+    if candidates is None:
+        return
+    if not isinstance(candidates, list) or not candidates:
+        raise ConfigError("candidates must be a non-empty list")
+
+    seen_ids: set[str] = set()
+    for index, candidate in enumerate(candidates, start=1):
+        if not isinstance(candidate, dict):
+            raise ConfigError(f"candidates[{index}] must be a mapping")
+
+        candidate_id = candidate.get("id")
+        if is_placeholder(candidate_id):
+            raise ConfigError(f"candidates[{index}].id is required")
+        if candidate_id in seen_ids:
+            raise ConfigError(f"Duplicate candidate id: {candidate_id}")
+        seen_ids.add(candidate_id)
+
+        profile = candidate.get("profile", {})
+        if not isinstance(profile, dict):
+            raise ConfigError(f"candidates[{index}].profile must be a mapping")
+        if not profile.get("email"):
+            raise ConfigError(f"candidates[{index}].profile.email is required")
+
+        resume = candidate.get("resume", {})
+        if not isinstance(resume, dict):
+            raise ConfigError(f"candidates[{index}].resume must be a mapping")
+        if not resume.get("path"):
+            raise ConfigError(f"candidates[{index}].resume.path is required")

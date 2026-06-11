@@ -17,6 +17,8 @@ jobs:
       EMAIL_ADDRESS: ${{ secrets.EMAIL_ADDRESS }}
       EMAIL_APP_PASSWORD: ${{ secrets.EMAIL_APP_PASSWORD }}
       RESUME_PDF_BASE64: ${{ secrets.RESUME_PDF_BASE64 }}
+      RESUME_PDF_BASE64_GENERAL: ${{ secrets.RESUME_PDF_BASE64_GENERAL }}
+      RESUME_PDF_BASE64_RETAIL: ${{ secrets.RESUME_PDF_BASE64_RETAIL }}
 
     steps:
       - name: Check out repository
@@ -56,11 +58,18 @@ jobs:
           restore-keys: |
             careerpilot-data-${{ github.ref_name }}-
 
-      - name: Recreate resume from secret
-        if: steps.london_time.outputs.should_run == 'true' && env.RESUME_PDF_BASE64 != ''
+      - name: Recreate resumes from secrets
+        if: steps.london_time.outputs.should_run == 'true'
         run: |
           mkdir -p resume
-          printf "%s" "$RESUME_PDF_BASE64" | base64 --decode > resume/resume.pdf
+          if [ -n "$RESUME_PDF_BASE64_GENERAL" ]; then
+            printf "%s" "$RESUME_PDF_BASE64_GENERAL" | base64 --decode > resume/Yuanting_Shi_CV.pdf
+          elif [ -n "$RESUME_PDF_BASE64" ]; then
+            printf "%s" "$RESUME_PDF_BASE64" | base64 --decode > resume/Yuanting_Shi_CV.pdf
+          fi
+          if [ -n "$RESUME_PDF_BASE64_RETAIL" ]; then
+            printf "%s" "$RESUME_PDF_BASE64_RETAIL" | base64 --decode > resume/Yuanting_Shi_CV_Retail.pdf
+          fi
 
       - name: Run CareerPilot AI
         if: steps.london_time.outputs.should_run == 'true'

@@ -3,10 +3,10 @@ name: Daily CareerPilot AI
 on:
   workflow_dispatch:
   schedule:
-    # 07:30 Europe/London during British Summer Time.
-    - cron: "30 6 * * *"
-    # 07:30 Europe/London during Greenwich Mean Time.
-    - cron: "30 7 * * *"
+    # 07:12 Europe/London during British Summer Time.
+    - cron: "12 6 * * *"
+    # 07:12 Europe/London during Greenwich Mean Time.
+    - cron: "12 7 * * *"
 
 jobs:
   run-careerpilot:
@@ -41,8 +41,8 @@ jobs:
           # that triggered the run instead of the actual execution hour.
           should_run = (
               event_name == "workflow_dispatch"
-              or (schedule == "30 6 * * *" and offset_hours == 1)
-              or (schedule == "30 7 * * *" and offset_hours == 0)
+              or (schedule == "12 6 * * *" and offset_hours == 1)
+              or (schedule == "12 7 * * *" and offset_hours == 0)
           )
           print(f"should_run={str(should_run).lower()}")
           print(f"local_time={now.isoformat()}")

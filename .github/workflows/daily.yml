@@ -33,9 +33,21 @@ jobs:
           from zoneinfo import ZoneInfo
 
           now = datetime.now(ZoneInfo("Europe/London"))
-          should_run = now.hour == 7 or "${{ github.event_name }}" == "workflow_dispatch"
+          event_name = "${{ github.event_name }}"
+          schedule = "${{ github.event.schedule }}"
+          offset_hours = int(now.utcoffset().total_seconds() // 3600)
+
+          # GitHub scheduled workflows can be delayed, so use the cron entry
+          # that triggered the run instead of the actual execution hour.
+          should_run = (
+              event_name == "workflow_dispatch"
+              or (schedule == "30 6 * * *" and offset_hours == 1)
+              or (schedule == "30 7 * * *" and offset_hours == 0)
+          )
           print(f"should_run={str(should_run).lower()}")
           print(f"local_time={now.isoformat()}")
+          print(f"schedule={schedule}")
+          print(f"utc_offset_hours={offset_hours}")
           PY
 
       - name: Set up Python

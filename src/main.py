@@ -7,7 +7,7 @@ import re
 from pathlib import Path
 from typing import Any
 
-from collect_jobs import collect_jobs
+from collect_jobs import build_apify_input, collect_jobs, search_urls_from_apify_input
 from config_loader import (
     ConfigError,
     get_openai_model,
@@ -26,6 +26,7 @@ from storage import (
     save_history,
     save_raw_jobs,
     save_scored_jobs,
+    save_search_urls,
 )
 from utils import clean_text, dedupe_list, project_root, setup_logging
 
@@ -93,7 +94,9 @@ def run_candidate(
     )
     resolve_target_roles(config, candidate_profile)
 
-    raw_jobs = collect_jobs(config=config, apify_token=apify_token)
+    run_input = build_apify_input(config)
+    save_search_urls(data_dir, search_urls_from_apify_input(run_input))
+    raw_jobs = collect_jobs(config=config, apify_token=apify_token, run_input=run_input)
     save_raw_jobs(data_dir, raw_jobs)
 
     filtered_jobs = normalize_and_filter_jobs(raw_jobs, config)

@@ -34,6 +34,16 @@ def save_raw_jobs(data_dir: Path, jobs: list[dict[str, Any]]) -> None:
     save_json(data_dir / "jobs_raw.json", jobs)
 
 
+def save_search_urls(data_dir: Path, urls: list[str]) -> None:
+    save_json(
+        data_dir / "search_urls.json",
+        {
+            "updated_at": utc_now_iso(),
+            "urls": urls,
+        },
+    )
+
+
 def save_scored_jobs(data_dir: Path, jobs: list[dict[str, Any]]) -> None:
     save_json(data_dir / "jobs_scored.json", jobs)
 

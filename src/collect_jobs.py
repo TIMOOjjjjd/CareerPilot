@@ -15,7 +15,11 @@ logger = logging.getLogger(__name__)
 APIFY_SYNC_ENDPOINT = "https://api.apify.com/v2/acts/{actor_id}/run-sync-get-dataset-items"
 
 
-def collect_jobs(config: dict[str, Any], apify_token: str) -> list[dict[str, Any]]:
+def collect_jobs(
+    config: dict[str, Any],
+    apify_token: str,
+    run_input: dict[str, Any] | None = None,
+) -> list[dict[str, Any]]:
     sources = config["sources"]
     actor_id = clean_text(sources.get("apify_actor_id"))
     if is_placeholder(actor_id):
@@ -24,7 +28,8 @@ def collect_jobs(config: dict[str, Any], apify_token: str) -> list[dict[str, Any
     max_jobs = int(sources.get("max_jobs_per_run", 100))
     actor_ref = quote(actor_id.replace("/", "~"), safe="~")
     url = APIFY_SYNC_ENDPOINT.format(actor_id=actor_ref)
-    run_input = build_apify_input(config)
+    if run_input is None:
+        run_input = build_apify_input(config)
 
     logger.info("Collecting jobs from Apify actor %s", actor_id)
     response = requests.post(
@@ -56,6 +61,15 @@ def collect_jobs(config: dict[str, Any], apify_token: str) -> list[dict[str, Any
     jobs = [job for job in jobs if job.get("title") or job.get("apply_url")]
     logger.info("Collected %s jobs from Apify", len(jobs))
     return jobs
+
+
+def search_urls_from_apify_input(run_input: dict[str, Any]) -> list[str]:
+    urls = run_input.get("urls", [])
+    if isinstance(urls, str):
+        urls = [urls]
+    if not isinstance(urls, list):
+        return []
+    return [clean_text(url) for url in urls if clean_text(url)]
 
 
 def build_apify_input(config: dict[str, Any]) -> dict[str, Any]:

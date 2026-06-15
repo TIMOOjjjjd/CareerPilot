@@ -17,10 +17,9 @@ job_preferences:
 #    - "Software Engineer"
 #    - "Backend Engineer"
 #    - "Data Scientist"
+  target_country: "United Kingdom"
   locations:
-    - "London"
-    - "Birmingham"
-    - "Remote"
+    - "United Kingdom"
   work_type:
     - "Full-time"
     - "Part-time"
@@ -32,6 +31,7 @@ job_preferences:
   hybrid_remote:
     - "Remote"
     - "Hybrid"
+    - "On-site"
   salary:
     min_gbp: 30000
   excluded_keywords:

@@ -5,6 +5,7 @@ import re
 from datetime import datetime, timedelta, timezone
 from typing import Any
 
+from location_filters import job_is_in_uk, requires_uk_target
 from utils import clean_html, clean_text, first_non_empty, job_identity, parse_salary_gbp
 
 logger = logging.getLogger(__name__)
@@ -87,6 +88,9 @@ def passes_rule_filters(job: dict[str, Any], config: dict[str, Any]) -> tuple[bo
     excluded_keywords = preferences.get("excluded_keywords", [])
     if _contains_keyword(searchable_text, excluded_keywords):
         return False, "excluded keyword"
+
+    if requires_uk_target(preferences) and not job_is_in_uk(job):
+        return False, "outside United Kingdom"
 
     allowed_work_types = [clean_text(item).lower() for item in preferences.get("work_type", [])]
     work_type = clean_text(job.get("work_type")).lower()

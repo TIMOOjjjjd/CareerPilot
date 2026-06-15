@@ -120,6 +120,7 @@ Open `config/config.yaml` and update:
 - each candidate's `profile.email`
 - each candidate's `resume.path`
 - target roles and locations
+- `job_preferences.target_country`, set to `United Kingdom` when results must be UK-only
 - `job_preferences.job_age_window`, either `24h` or `7d`
 - salary threshold
 - visa sponsorship preference
@@ -127,6 +128,8 @@ Open `config/config.yaml` and update:
 - `sources.apify_actor_id`
 
 You can set `job_preferences.roles` to `[]` if you want CareerPilot AI to infer target roles from your resume. If roles are provided, the configured values are used exactly as the search targets for the run.
+
+For UK-only searches, keep `job_preferences.target_country: "United Kingdom"` and use `locations: ["United Kingdom"]`. Do not use `Remote` as a location; remote, hybrid, and on-site are work-arrangement values under `job_preferences.hybrid_remote`. The preprocessing step also rejects jobs that cannot be clearly identified as UK-based.
 
 Apify actors have different input schemas. This MVP sends common search fields such as roles, locations, queries, and max item counts. If your chosen actor needs custom input, add an optional `sources.apify_input` mapping in `config/config.yaml`; those values are merged into the request body.
 

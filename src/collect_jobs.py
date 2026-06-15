@@ -7,6 +7,7 @@ from urllib.parse import quote, urlencode
 import requests
 
 from config_loader import ConfigError
+from location_filters import linkedin_geo_id_for_location, target_search_locations
 from utils import clean_html, clean_text, first_non_empty, is_placeholder, parse_salary_gbp
 
 logger = logging.getLogger(__name__)
@@ -70,7 +71,7 @@ def build_apify_input(config: dict[str, Any]) -> dict[str, Any]:
         return run_input
 
     roles = [clean_text(role) for role in preferences.get("roles", []) if clean_text(role)]
-    locations = [clean_text(location) for location in preferences.get("locations", []) if clean_text(location)]
+    locations = target_search_locations(preferences)
     max_jobs = int(sources.get("max_jobs_per_run", 100))
     queries = [f"{role} {location}".strip() for role in roles for location in locations]
 
@@ -107,7 +108,7 @@ def build_linkedin_jobs_scraper_input(config: dict[str, Any]) -> dict[str, Any]:
 
     preferences = config["job_preferences"]
     roles = [clean_text(role) for role in preferences.get("roles", []) if clean_text(role)]
-    locations = [clean_text(location) for location in preferences.get("locations", []) if clean_text(location)]
+    locations = target_search_locations(preferences)
     if not roles:
         raise ConfigError(
             "No target roles available for LinkedIn search URL generation. "
@@ -133,6 +134,10 @@ def build_linkedin_search_url(role: str, location: str, preferences: dict[str, A
         "keywords": role,
         "location": location,
     }
+
+    geo_id = linkedin_geo_id_for_location(location)
+    if geo_id:
+        params["geoId"] = geo_id
 
     date_filter = linkedin_date_filter(preferences)
     if date_filter:
